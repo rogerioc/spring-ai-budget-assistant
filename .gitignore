@@ -40,9 +40,6 @@ out/
 .env
 .env*.local
 
-### Documentation & Media ###
-doc/
-
 ### OS & Temporary Files ###
 .DS_Store
 ._*

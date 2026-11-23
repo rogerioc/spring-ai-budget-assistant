@@ -2,10 +2,14 @@ package org.rogeriocs.budgetinai.assistant.infrastructure.springai;
 
 import org.rogeriocs.budgetinai.assistant.domain.AudioTranscriber;
 import org.springframework.ai.audio.transcription.TranscriptionModel;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(name = "app.ai.provider", havingValue = "openai", matchIfMissing = true)
+@ConditionalOnBean(TranscriptionModel.class)
 public class SpringAiAudioTranscriber implements AudioTranscriber {
 
     private final TranscriptionModel transcriptionModel;

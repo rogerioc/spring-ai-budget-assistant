@@ -17,12 +17,12 @@ public class ChatController {
     }
 
     @GetMapping("/chat")
-    public String chat(@RequestParam(name = "prompts", defaultValue = "Tell me a joke") String prompt) {
+    public String chat(@RequestParam(name = "prompt", defaultValue = "Ola") String prompt) {
         return chatUseCase.chat(prompt);
     }
 
     @GetMapping("/chat-model")
-    public String chatModel(@RequestParam(name = "prompts", defaultValue = "Tell me a joke") String prompt) {
+    public String chatModel(@RequestParam(name = "prompt", defaultValue = "Ola") String prompt) {
         return chatUseCase.chatWithModel(prompt);
     }
 }

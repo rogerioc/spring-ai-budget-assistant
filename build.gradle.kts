@@ -23,6 +23,7 @@ repositories {
 dependencies {
 	implementation(platform("org.springframework.ai:spring-ai-bom:2.0.2"))
 	implementation("org.springframework.ai:spring-ai-starter-model-openai")
+	implementation("org.springframework.ai:spring-ai-starter-model-ollama")
 	implementation("org.springframework.boot:spring-boot-starter")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-docker-compose")

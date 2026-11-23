@@ -5,6 +5,7 @@
 [![Java 25](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x%2F4.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Spring AI](https://img.shields.io/badge/Spring%20AI-2.0.2-blue.svg)](https://spring.io/projects/spring-ai)
+[![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-black.svg)](https://ollama.ai)
 [![DIO Track](https://img.shields.io/badge/DIO-Spring%20AI%20Track-E91E63.svg)](https://github.com/digitalinnovationone/dio-spring-boot-learning-track/blob/main/05-spring-ai/README.md)
 [![Gradle](https://img.shields.io/badge/Gradle-9.x-02303A.svg)](https://gradle.org)
 [![Docker](https://img.shields.io/badge/Docker%20Compose-MySQL%208-2496ED.svg)](https://www.docker.com/)
@@ -137,11 +138,14 @@ src/main/java/org/rogeriocs/budgetinai/
 
 * **Linguagem:** Java 25 (OpenJDK Temurin)
 * **Framework:** Spring Boot & Spring Data JPA
-* **Framework de IA:** Spring AI (OpenAI Starter & Tools API)
-* **Modelos de IA:**
-  * Whisper (`whisper-1`) — Transcrição de áudio
-  * GPT-4o-mini — Raciocínio, extração e Tool Calling
-  * TTS (`gpt-4o-mini-tts` / `tts-1`) — Síntese de voz
+* **Framework de IA:** Spring AI (OpenAI Starter, Ollama Starter & Tools API)
+* **Modelos de IA Suportados:**
+  * **Nuvem (OpenAI):**
+    * Whisper (`whisper-1`) — Transcrição de áudio
+    * GPT-4o-mini — Raciocínio, extração e Tool Calling
+    * TTS (`gpt-4o-mini-tts` / `tts-1`) — Síntese de voz
+  * **Local (Ollama):**
+    * Llama 3 (`llama3:latest` ou `llama3.2`) — Execução 100% local e gratuita com Tool Calling
 * **Banco de Dados:** MySQL 8 em container Docker
 * **Build & Testes:** Gradle (Kotlin DSL), JUnit 5, Mockito e AssertJ
 
@@ -154,7 +158,14 @@ src/main/java/org/rogeriocs/budgetinai/
 * **Docker** e **Docker Compose**
 * Uma chave de API da **OpenAI**
 
-### 2. Configurar Variáveis de Ambiente
+### 2. Configurar o Provedor de IA (OpenAI ou Ollama)
+
+No arquivo `application.properties`, você escolhe o provedor com apenas **uma linha**:
+
+#### Opção A: OpenAI (Nuvem com Áudio + TTS)
+```properties
+app.ai.provider=openai
+```
 Copie o arquivo de exemplo e insira sua chave da OpenAI:
 ```bash
 cp .env.example .env
@@ -163,6 +174,18 @@ Edite o arquivo `.env`:
 ```env
 OPENAI_API_KEY=sk-proj-sua-chave-aqui
 ```
+
+#### Opção B: Ollama Local (100% Gratuito e Offline)
+```properties
+app.ai.provider=ollama
+spring.ai.ollama.base-url=http://localhost:11434
+spring.ai.ollama.chat.options.model=llama3:latest
+```
+Certifique-se de que o Ollama está rodando e baixe o modelo:
+```bash
+ollama run llama3
+```
+*(Ou inicie o serviço do Ollama diretamente pelo `docker compose up -d`)*.
 
 ### 3. Iniciar o Banco de Dados (MySQL)
 ```bash
@@ -195,7 +218,8 @@ export $(grep -v '^#' .env | xargs) && ./gradlew bootRun
 - [x] Persistência em banco relacional (MySQL)
 - [x] Resposta com síntese de voz (TTS)
 - [x] Suíte de testes unitários isolados com Mockito
-- [ ] Suporte a múltiplos provedores de LLM (Ollama / Claude / Gemini)
+- [x] Suporte a LLM local gratuito com Ollama (Llama 3)
+- [ ] Suporte a múltiplos provedores em nuvem (Claude / Gemini)
 - [ ] Processamento assíncrono de áudio com mensageria (Kafka / RabbitMQ)
 - [ ] Relatórios e dashboards de gastos por período e categoria
 

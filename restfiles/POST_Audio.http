@@ -1,0 +1,9 @@
+POST http://localhost:8080/transactions/ai/audio
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="recording-6.m4a"
+Content-Type: audio/m4a
+
+< ../src/test/resources/audio/recording-6.m4a
+--boundary--

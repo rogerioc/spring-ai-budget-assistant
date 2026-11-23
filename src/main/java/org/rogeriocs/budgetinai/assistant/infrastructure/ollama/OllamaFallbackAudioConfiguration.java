@@ -2,30 +2,31 @@ package org.rogeriocs.budgetinai.assistant.infrastructure.ollama;
 
 import org.rogeriocs.budgetinai.assistant.domain.AudioTranscriber;
 import org.rogeriocs.budgetinai.assistant.domain.VoiceSynthesizer;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConditionalOnProperty(name = "app.ai.provider", havingValue = "ollama")
 public class OllamaFallbackAudioConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean(AudioTranscriber.class)
     public AudioTranscriber localAudioTranscriber() {
         return (audioContent, filename) -> {
             throw new UnsupportedOperationException(
                     "Speech-to-Text não é suportado nativamente pelo Ollama. " +
-                    "Use o endpoint de texto (/api/chat) ou configure a OpenAI (app.ai.provider=openai)."
+                    "Para processar áudio, configure sua OPENAI_API_KEY no arquivo .env."
             );
         };
     }
 
     @Bean
+    @ConditionalOnMissingBean(VoiceSynthesizer.class)
     public VoiceSynthesizer localVoiceSynthesizer() {
         return text -> {
             throw new UnsupportedOperationException(
                     "Text-to-Speech não é suportado nativamente pelo Ollama. " +
-                    "Configure a OpenAI (app.ai.provider=openai) para síntese de voz."
+                    "Para gerar áudio, configure sua OPENAI_API_KEY no arquivo .env."
             );
         };
     }

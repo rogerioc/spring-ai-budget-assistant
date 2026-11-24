@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 
 @Component
-@ConditionalOnProperty(name = "app.ai.provider", havingValue = "openai", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.ai.provider.llm", havingValue = "openai", matchIfMissing = true)
 public class SpringAiFinancialAssistant implements FinancialAssistant {
 
     private final ChatClient chatClient;

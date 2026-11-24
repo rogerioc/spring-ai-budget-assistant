@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "app.ai.provider", havingValue = "ollama")
+@ConditionalOnProperty(name = "app.ai.provider.llm", havingValue = "ollama")
 public class OllamaChatAssistant implements ChatAssistant {
 
     private final ChatClient chatClient;

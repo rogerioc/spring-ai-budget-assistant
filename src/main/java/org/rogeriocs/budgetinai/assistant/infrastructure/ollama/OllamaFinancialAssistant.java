@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 
 @Component
-@ConditionalOnProperty(name = "app.ai.provider", havingValue = "ollama")
+@ConditionalOnProperty(name = "app.ai.provider.llm", havingValue = "ollama")
 public class OllamaFinancialAssistant implements FinancialAssistant {
 
     private final ChatClient chatClient;

@@ -13,14 +13,14 @@ public class AiProviderConfiguration {
 
     @Bean
     @Primary
-    @ConditionalOnProperty(name = "app.ai.provider", havingValue = "ollama")
+    @ConditionalOnProperty(name = "app.ai.provider.llm", havingValue = "ollama")
     public ChatModel primaryOllamaChatModel(OllamaChatModel ollamaChatModel) {
         return ollamaChatModel;
     }
 
     @Bean
     @Primary
-    @ConditionalOnProperty(name = "app.ai.provider", havingValue = "openai", matchIfMissing = true)
+    @ConditionalOnProperty(name = "app.ai.provider.llm", havingValue = "openai", matchIfMissing = true)
     public ChatModel primaryOpenAiChatModel(OpenAiChatModel openAiChatModel) {
         return openAiChatModel;
     }

@@ -14,8 +14,8 @@ public class OllamaFallbackAudioConfiguration {
     public AudioTranscriber localAudioTranscriber() {
         return (audioContent, filename) -> {
             throw new UnsupportedOperationException(
-                    "Speech-to-Text não é suportado nativamente pelo Ollama. " +
-                    "Para processar áudio, configure sua OPENAI_API_KEY no arquivo .env."
+                    "Speech-to-Text não está ativo. " +
+                    "Para transcrever áudio, ative app.ai.provider.stt=openai e configure a OPENAI_API_KEY no arquivo .env."
             );
         };
     }
@@ -25,8 +25,8 @@ public class OllamaFallbackAudioConfiguration {
     public VoiceSynthesizer localVoiceSynthesizer() {
         return text -> {
             throw new UnsupportedOperationException(
-                    "Text-to-Speech não é suportado nativamente pelo Ollama. " +
-                    "Para gerar áudio, configure sua OPENAI_API_KEY no arquivo .env."
+                    "Text-to-Speech não está ativo. " +
+                    "Para sintetizar resposta em áudio, ative app.ai.provider.tts=openai e configure a OPENAI_API_KEY no arquivo .env."
             );
         };
     }

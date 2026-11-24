@@ -158,34 +158,21 @@ src/main/java/org/rogeriocs/budgetinai/
 * **Docker** e **Docker Compose**
 * Uma chave de API da **OpenAI**
 
-### 2. Configurar o Provedor de IA (OpenAI ou Ollama)
+### 2. Configuração de Provedores de IA (Arquitetura Híbrida)
 
-No arquivo `application.properties`, você escolhe o provedor com apenas **uma linha**:
+No arquivo `application.properties`, você pode desacoplar e escolher independentemente os provedores de **LLM**, **STT** e **TTS**:
 
-#### Opção A: OpenAI (Nuvem com Áudio + TTS)
 ```properties
-app.ai.provider=openai
-```
-Copie o arquivo de exemplo e insira sua chave da OpenAI:
-```bash
-cp .env.example .env
-```
-Edite o arquivo `.env`:
-```env
-OPENAI_API_KEY=sk-proj-sua-chave-aqui
+# Arquitetura Híbrida (Mix & Match)
+app.ai.provider.llm=ollama     # 'ollama' (local) ou 'openai' (nuvem)
+app.ai.provider.stt=openai     # 'openai' (Whisper) ou 'none'
+app.ai.provider.tts=openai     # 'openai' (TTS) ou 'none'
 ```
 
-#### Opção B: Ollama Local (100% Gratuito e Offline)
-```properties
-app.ai.provider=ollama
-spring.ai.ollama.base-url=http://localhost:11434
-spring.ai.ollama.chat.options.model=llama3:latest
-```
-Certifique-se de que o Ollama está rodando e baixe o modelo:
-```bash
-ollama run llama3
-```
-*(Ou inicie o serviço do Ollama diretamente pelo `docker compose up -d`)*.
+#### 💡 Por que uma Arquitetura Híbrida?
+1. **Privacidade e Custo Zero no Raciocínio (LLM):** Transações financeiras, valores e categorias são processados pelo **Llama 3 local no Ollama**, garantindo que seus dados financeiros nunca saiam da sua infraestrutura e zerando custos com tokens de chat.
+2. **Alta Fidelidade no Áudio (STT & TTS):** Modelos de voz (Whisper e TTS da OpenAI) oferecem precisão fonética impecável em português com custos de apenas frações de centavo por requisição.
+3. **Liberdade Arquitetural:** Se no futuro quiser plugar um transcritor local (`whisper.cpp`) ou sintetizador open-source (`piper`), basta criar o adapter sem alterar nenhuma regra de negócio.
 
 ### 3. Iniciar o Banco de Dados (MySQL)
 ```bash

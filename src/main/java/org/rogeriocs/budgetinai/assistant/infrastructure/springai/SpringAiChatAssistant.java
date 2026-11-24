@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "app.ai.provider", havingValue = "openai", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.ai.provider.llm", havingValue = "openai", matchIfMissing = true)
 public class SpringAiChatAssistant implements ChatAssistant {
 
     private final ChatClient chatClient;

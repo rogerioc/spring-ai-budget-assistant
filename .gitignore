@@ -44,6 +44,7 @@ out/
 .DS_Store
 ._*
 *.mp3
+storage/
 
 ### Agent / IDE Skills ###
 skills/

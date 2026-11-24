@@ -73,7 +73,14 @@ Content-Type: audio/m4a
 --boundary--
 
 ### ------------------------------------------------------------------------------
-### PASSO 7 (Opcional): Cadastrar um Segundo Usuário
+### PASSO 7: Consultar Histórico de Arquivos e Metadados da IA gravados no MongoDB
+### Resultado Esperado: HTTP 200 OK com lista de documentos do MongoDB
+### ------------------------------------------------------------------------------
+GET http://localhost:8080/transactions/ai/files
+Authorization: Bearer {{authToken}}
+
+### ------------------------------------------------------------------------------
+### PASSO 8 (Opcional): Cadastrar um Segundo Usuário
 ### Resultado Esperado: HTTP 201 Created com Token próprio
 ### ------------------------------------------------------------------------------
 # @name register

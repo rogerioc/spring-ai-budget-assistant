@@ -25,6 +25,19 @@ services:
       - ollama_data:/root/.ollama
     restart: unless-stopped
 
+  mongodb:
+    image: mongo:latest
+    container_name: budgetin_mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_INITDB_DATABASE: budgetin_files
+    volumes:
+      - mongo_data:/data/db
+
 volumes:
   transaction_data:
   ollama_data:
+  mongo_data:

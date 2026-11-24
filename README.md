@@ -1,14 +1,17 @@
 # 🎙️ Spring AI Budget Assistant (BudgetinAI)
 
-> **Assistente financeiro inteligente que transforma comandos de voz naturais em transações financeiras estruturadas, utilizando Spring AI, OpenAI e Arquitetura Limpa.**
+> **Assistente financeiro inteligente que transforma comandos de voz naturais em transações financeiras estruturadas, utilizando Spring AI, OpenAI, Ollama, Spring Security (JWT), Persistência Poliglota (MySQL + MongoDB) e Arquitetura Limpa.**
 
 [![Java 25](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x%2F4.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Spring AI](https://img.shields.io/badge/Spring%20AI-2.0.2-blue.svg)](https://spring.io/projects/spring-ai)
+[![Spring Security](https://img.shields.io/badge/Spring%20Security-JWT%20Stateless-red.svg)](https://spring.io/projects/spring-security)
+[![MySQL](https://img.shields.io/badge/MySQL-8.x%20ACID-blue.svg)](https://www.mysql.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-NoSQL%20Metadata-green.svg)](https://www.mongodb.com/)
 [![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-black.svg)](https://ollama.ai)
 [![DIO Track](https://img.shields.io/badge/DIO-Spring%20AI%20Track-E91E63.svg)](https://github.com/digitalinnovationone/dio-spring-boot-learning-track/blob/main/05-spring-ai/README.md)
 [![Gradle](https://img.shields.io/badge/Gradle-9.x-02303A.svg)](https://gradle.org)
-[![Docker](https://img.shields.io/badge/Docker%20Compose-MySQL%208-2496ED.svg)](https://www.docker.com/)
+[![Docker](https://img.shields.io/badge/Docker%20Compose-MySQL%20%2B%20Mongo-2496ED.svg)](https://www.docker.com/)
 
 ---
 
@@ -16,7 +19,7 @@
 
 O **BudgetinAI** elimina a fricção da digitação manual de despesas. Em vez de preencher formulários com datas, categorias e valores, o usuário apenas envia um áudio (ex: *"Gastei 50 reais no mercado"* ou *"Abasteci 120 reais no posto"*).
 
-O sistema processa a fala com modelos de ponta, compreende a intenção através de **Tool Calling**, persiste os dados de forma estruturada e responde em texto ou áudio sintetizado.
+O sistema processa a fala com modelos de ponta, compreende a intenção através de **Tool Calling**, persiste os dados de forma estruturada no banco relacional, audita os metadados do processamento de IA no MongoDB e responde em texto ou áudio sintetizado.
 
 <p align="center">
   <img src="doc/visao-geral.png" alt="O Assistente de Budgeting: Transformando Voz em Dados Financeiros" width="850"/>
@@ -34,6 +37,7 @@ Interfaces clássicas dependem de formulários estáticos e validações rígida
 | JSON estático e rígido | Extração semântica com Whisper + LLM |
 | Múltiplos cliques no app | Registro instantâneo por comando de voz |
 | Resposta puramente textual | Resposta multimodal (JSON, Texto ou Áudio TTS) |
+| Logs descartados ou em texto | Metadados e auditoria completa da IA em MongoDB |
 
 <p align="center">
   <img src="doc/evolucao-interfaces.png" alt="A Evolução das Interfaces" width="850"/>
@@ -41,47 +45,69 @@ Interfaces clássicas dependem de formulários estáticos e validações rígida
 
 ---
 
-## 🔄 Fluxo de Interação de Ponta a Ponta
+## 🔄 Fluxo de Interação & Persistência Poliglota
 
-<p align="center">
-  <img src="doc/fluxo-interacao.png" alt="Novo Fluxo de Interação" width="850"/>
-</p>
+```mermaid
+flowchart TD
+    Client["📱 Cliente / REST"] -->|1. Envia Áudio com Bearer Token| API["🚀 Spring Boot API"]
+    
+    subgraph StorageLayer ["Armazenamento Físico"]
+        Storage[("📁 Local Storage / S3<br/>grava binário particionado por data")]
+    end
+    
+    subgraph MongoLayer ["NoSQL (Auditoria & Metadados)"]
+        MongoDB[("🍃 MongoDB (budgetin_files)<br/>status, caminho, transcrição, resposta IA")]
+    end
+    
+    subgraph SQLLayer ["Relacional ACID"]
+        MySQL[("🐬 MySQL (transaction)<br/>transações, usuários, owner UUID")]
+    end
+    
+    API -->|Salva binário físico| Storage
+    API -->|Registra status RECEIVED| MongoDB
+    API -->|2. Whisper STT| Whisper["🎙️ OpenAI Whisper"]
+    Whisper -->|Texto transcrito| API
+    API -->|Atualiza status TRANSCRIBED| MongoDB
+    API -->|3. Raciocínio & Tool Calling| LLM["🤖 Llama 3.2 (Ollama) / GPT-4o-mini"]
+    LLM -->|Invoca Tool: persistTransaction| API
+    API -->|4. Grava transação com Owner UUID| MySQL
+    API -->|Atualiza status PROCESSED| MongoDB
+    API -->|5. OpenAI TTS| TTS["🔊 Síntese de Voz (MP3)"]
+    TTS -->|Retorna Áudio MP3| Client
+```
 
-1. **Entrada de Áudio:** O usuário envia uma mensagem de voz (`.m4a`, `.mp3`, `.wav`).
-2. **Speech-to-Text (STT):** O modelo **Whisper** da OpenAI transcreve o áudio em texto em português.
-3. **Compreensão e Tool Calling:** O **GPT-4o-mini** analisa a frase, identifica o valor, descrição e categoria (`GROCERIES`, `PHARMA`, `AUTO`), e invoca automaticamente a ferramenta (`Tool`) de persistência.
-4. **Persistência de Negócio:** O caso de uso de aplicação executa a validação e grava a transação no MySQL.
-5. **Text-to-Speech (TTS):** Opcionalmente, a resposta é sintetizada em áudio para retorno ao usuário.
-
-<div align="center">
-  <img src="doc/speech-to-text.png" alt="Speech to Text" width="48%"/>
-  <img src="doc/tool-calling.png" alt="Tool Calling" width="48%"/>
-</div>
+1. **Entrada de Áudio Autenticada:** O usuário envia uma mensagem de voz (`.m4a`, `.mp3`, `.wav`) com token JWT.
+2. **Armazenamento Físico:** O binário é gravado em disco organizado por diretórios de data (`./storage/uploads/YYYY-MM-DD/`).
+3. **Metadados no MongoDB:** Um documento em `uploaded_files` é criado com status `RECEIVED`, registrando metadados técnicos do arquivo.
+4. **Speech-to-Text (STT):** O **Whisper** da OpenAI transcreve o áudio e o texto é auditado no MongoDB (`TRANSCRIBED`).
+5. **Compreensão e Tool Calling:** O **Llama 3.2 (local via Ollama)** ou **GPT-4o-mini** extrai valor, categoria e descrição, chamando a `@Tool` `persist-transaction`.
+6. **Persistência Relacional (MySQL):** A transação financeira é salva no MySQL com o UUID do usuário autenticado no objeto `owner`.
+7. **Conclusão & TTS:** O status no MongoDB é atualizado para `PROCESSED` e a resposta falada é sintetizada em MP3 para retorno ao usuário.
 
 ---
 
-## 🏛️ Arquitetura do Projeto (Clean Architecture)
+## 🏛️ Arquitetura do Projeto (Clean Architecture & DDD)
 
-O projeto é organizado por **Domínios/Contextos Delimitados (Package by Feature)**, garantindo que regras de negócio não fiquem acopladas aos frameworks ou provedores de IA:
+O projeto é organizado por **Domínios/Contextos Delimitados (Package by Feature)** com total desacoplamento entre módulos:
 
 ```text
 src/main/java/org/rogeriocs/budgetinai/
 ├── BudgetinAiApplication.java
 │
-├── auth/                                     # Domínio: Identidade & Segurança (JWT)
+├── auth/                                     # Domínio: Identidade & Segurança (JWT Stateless)
 │   ├── domain/                               # Entidades e Value Objects
-│   │   ├── UserRole.java                     (ROLE_USER, ROLE_ADMIN)
-│   │   └── UserId.java
+│   │   └── UserRole.java                     (ROLE_USER, ROLE_ADMIN)
 │   └── infrastructure/                       # Adaptadores Spring Security & JPA
 │       ├── http/ (AuthController - Login e Registro)
-│       ├── persistence/ (User, UserRepository)
-│       └── security/ (SecurityConfig, JwtService, JwtAuthenticationFilter, JpaUserDetailsService)
+│       ├── persistence/                      # User JPA Entity (UUID VARCHAR(36)), UserRepository
+│       └── security/                         # SecurityConfig, JwtService, JwtAuthenticationFilter, JpaUserDetailsService
 │
 ├── transaction/                              # Domínio: Gestão Financeira
-│   ├── domain/                               # Entidades e regras puras
+│   ├── domain/                               # Entidades e regras puras (Zero acoplamento com auth)
 │   │   ├── Transaction.java
 │   │   ├── TransactionId.java
-│   │   ├── Category.java
+│   │   ├── Category.java                     (GROCERIES, PHARMA, AUTO)
+│   │   ├── Owner.java                        # Record Owner(UUID id, String name)
 │   │   └── TransactionRepository.java        (Porta de Saída)
 │   ├── application/                          # Casos de uso
 │   │   ├── PersistTransactionUseCase.java
@@ -89,8 +115,19 @@ src/main/java/org/rogeriocs/budgetinai/
 │   │   ├── input/PersistTransactionInput.java
 │   │   └── output/TransactionOutput.java
 │   └── infrastructure/                       # Adaptadores JPA e HTTP
-│       ├── http/ (TransactionController, DTOs de Request/Response)
-│       └── persistence/ (TransactionEntity, JpaTransactionRepository)
+│       ├── http/                             # TransactionController, TransactionRequest, TransactionResponse
+│       └── persistence/                      # TransactionEntity (owner_id VARCHAR(36)), JpaTransactionRepository
+│
+├── file/                                     # Domínio: Arquivos & Metadados de IA
+│   ├── domain/                               # Entidades e Portas
+│   │   ├── FileMetadata.java                 # Ciclo de vida: RECEIVED, TRANSCRIBED, PROCESSED, FAILED
+│   │   ├── FileProcessingStatus.java
+│   │   ├── FileMetadataRepository.java       (Porta para NoSQL)
+│   │   └── FileStorageService.java           (Porta para Storage físico)
+│   └── infrastructure/                       # Adaptadores MongoDB e Storage
+│       ├── http/ (FileMetadataController - Consulta de histórico de IA)
+│       ├── persistence/mongo/                # FileMetadataDocument, MongoFileMetadataRepository, MongoConfig (UUID Standard)
+│       └── storage/                          # LocalFileStorageService (particionamento em disco)
 │
 └── assistant/                                # Domínio: Assistente de Inteligência Artificial
     ├── domain/                               # Portas puras (independente de IA específica)
@@ -105,41 +142,31 @@ src/main/java/org/rogeriocs/budgetinai/
     │   ├── SynthesizeVoiceUseCase.java
     │   └── ChatUseCase.java
     └── infrastructure/                       # Adaptadores de Framework
-        ├── springai/                         # Spring AI / OpenAI
-        │   ├── TransactionTools.java         # Anotações @Tool isoladas
-        │   ├── SpringAiAudioTranscriber.java
-        │   ├── SpringAiFinancialAssistant.java
-        │   └── SpringAiVoiceSynthesizer.java
-        └── http/                             # Controllers REST
-            ├── TransactionAssistantController.java
-            ├── ChatController.java
-            ├── TranscriptionController.java
-            └── TextToSpeechController.java
+        ├── springai/                         # TransactionTools (@Tool isoladas), SpringAiFinancialAssistant, etc.
+        ├── ollama/                           # OllamaFinancialAssistant, OllamaChatAssistant (Local LLM)
+        └── http/                             # TransactionAssistantController, ChatController, etc.
 ```
-
-<p align="center">
-  <img src="doc/anatomia-api.png" alt="Anatomia da API" width="850"/>
-</p>
 
 ---
 
 ## 📡 Endpoints da API
 
-### Autenticação (Público)
+### 1. Autenticação (Público)
 | Método | Endpoint | Descrição | Consome | Retorna |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/api/auth/register` | Cadastro de novo usuário | `application/json` | `AuthResponse` (Token JWT) |
 | `POST` | `/api/auth/login` | Login com usuário e senha | `application/json` | `AuthResponse` (Token JWT) |
 
-### Assistente de Voz & Transações (Requer Bearer Token)
+### 2. Assistente de Voz & Transações (Requer Bearer Token)
 | Método | Endpoint | Descrição | Consome | Retorna |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/transactions/ai/text` | Processa áudio, grava a transação e responde em texto | `multipart/form-data` | `text/plain` |
-| `POST` | `/transactions/ai/audio` | Processa áudio, grava a transação e responde em áudio | `multipart/form-data` | `audio/mp3` |
+| `POST` | `/transactions/ai/audio` | Processa áudio, grava no MySQL/Mongo e devolve áudio MP3 | `multipart/form-data` | `audio/mp3` |
+| `POST` | `/transactions/ai/text` | Processa áudio, grava no MySQL/Mongo e devolve texto | `multipart/form-data` | `text/plain` |
+| `GET` | `/transactions/ai/files` | Histórico e auditoria de arquivos/IA gravados no MongoDB | - | `List<FileMetadata>` |
 | `POST` | `/transactions` | Criação manual de transação financeira | `application/json` | `TransactionResponse` |
 | `GET` | `/transactions/{category}` | Lista transações por categoria (`GROCERIES`, `PHARMA`, `AUTO`) | - | `List<TransactionResponse>` |
 
-### Serviços Básicos de IA
+### 3. Serviços Básicos de IA
 | Método | Endpoint | Descrição |
 | :--- | :--- | :--- |
 | `POST` | `/api/transcribe` | Transcreve arquivo de áudio para texto |
@@ -152,16 +179,15 @@ src/main/java/org/rogeriocs/budgetinai/
 ## 🛠️ Tecnologias Utilizadas
 
 * **Linguagem:** Java 25 (OpenJDK Temurin)
-* **Framework:** Spring Boot & Spring Data JPA
+* **Framework:** Spring Boot & Spring Data JPA & Spring Data MongoDB
+* **Segurança:** Spring Security com autenticação Stateless via Bearer JWT (`jjwt 0.12.6`)
 * **Framework de IA:** Spring AI (OpenAI Starter, Ollama Starter & Tools API)
 * **Modelos de IA Suportados:**
-  * **Nuvem (OpenAI):**
-    * Whisper (`whisper-1`) — Transcrição de áudio
-    * GPT-4o-mini — Raciocínio, extração e Tool Calling
-    * TTS (`gpt-4o-mini-tts` / `tts-1`) — Síntese de voz
-  * **Local (Ollama):**
-    * Llama 3 (`llama3:latest` ou `llama3.2`) — Execução 100% local e gratuita com Tool Calling
-* **Banco de Dados:** MySQL 8 em container Docker
+  * **Nuvem (OpenAI):** Whisper (`whisper-1`), GPT-4o-mini e TTS (`gpt-4o-mini-tts`)
+  * **Local (Ollama):** Llama 3.2 com execução 100% local, gratuita e privada para Tool Calling
+* **Bancos de Dados:**
+  * **MySQL 8:** Persistência relacional ACID com UUIDs mapeados como `VARCHAR(36)` legíveis
+  * **MongoDB:** Persistência de documentos NoSQL para metadados de arquivos e logs de IA
 * **Build & Testes:** Gradle (Kotlin DSL), JUnit 5, Mockito e AssertJ
 
 ---
@@ -169,69 +195,67 @@ src/main/java/org/rogeriocs/budgetinai/
 ## 🚀 Como Executar Localmente
 
 ### 1. Pré-requisitos
-* **Java 25** instalado (ex: via SDKMAN: `sdk install java 25-tem`)
+* **Java 25** instalado
 * **Docker** e **Docker Compose**
-* Uma chave de API da **OpenAI**
+* Chave de API da **OpenAI** (para Whisper/TTS) e/ou **Ollama** rodando localmente
 
-### 2. Configuração de Provedores de IA (Arquitetura Híbrida)
-
-No arquivo `application.properties`, você pode desacoplar e escolher independentemente os provedores de **LLM**, **STT** e **TTS**:
-
-```properties
-# Arquitetura Híbrida (Mix & Match)
-app.ai.provider.llm=ollama     # 'ollama' (local) ou 'openai' (nuvem)
-app.ai.provider.stt=openai     # 'openai' (Whisper) ou 'none'
-app.ai.provider.tts=openai     # 'openai' (TTS) ou 'none'
-```
-
-#### 💡 Por que uma Arquitetura Híbrida?
-1. **Privacidade e Custo Zero no Raciocínio (LLM):** Transações financeiras, valores e categorias são processados pelo **Llama 3 local no Ollama**, garantindo que seus dados financeiros nunca saiam da sua infraestrutura e zerando custos com tokens de chat.
-2. **Alta Fidelidade no Áudio (STT & TTS):** Modelos de voz (Whisper e TTS da OpenAI) oferecem precisão fonética impecável em português com custos de apenas frações de centavo por requisição.
-3. **Liberdade Arquitetural:** Se no futuro quiser plugar um transcritor local (`whisper.cpp`) ou sintetizador open-source (`piper`), basta criar o adapter sem alterar nenhuma regra de negócio.
-
-### 3. Iniciar o Banco de Dados (MySQL)
+### 2. Iniciar os Containers (MySQL + MongoDB + Ollama)
 ```bash
 docker compose up -d
 ```
-*(O banco subirá na porta mapeada `3307:3306`)*.
+* **MySQL:** Porta `3307` (banco: `transaction`, usuário: `app/app`)
+* **MongoDB:** Porta `27017` (banco: `budgetin_files`, usuário: `root/root`)
+* **Ollama:** Porta `11434`
+
+### 3. Configuração Híbrida (`application.properties`)
+```properties
+# Provedores de IA Desacoplados
+app.ai.provider.llm=ollama     # 'ollama' (privacidade local) ou 'openai'
+app.ai.provider.stt=openai     # 'openai' (Whisper)
+app.ai.provider.tts=openai     # 'openai' (TTS)
+
+# Configurações MongoDB
+spring.data.mongodb.uri=mongodb://root:root@localhost:27017/budgetin_files?authSource=admin
+spring.data.mongodb.uuid-representation=standard
+app.storage.location=./storage/uploads
+```
 
 ### 4. Executar a Aplicação
-Exportando as variáveis do `.env` no terminal:
 ```bash
 export $(grep -v '^#' .env | xargs) && ./gradlew bootRun
 ```
-*(Ou abra o projeto na sua IDE favorita — Antigravity / IntelliJ — e execute o `main` da classe `BudgetinAiApplication`)*.
 
-### 5. Executar a Suíte de Testes
+### 5. Executar os Testes Automatizados
 ```bash
 ./gradlew test
 ```
 
 ---
 
-## 🗺️ Roadmap: Da Prova de Conceito à Escala Real
+## 🧪 Validação Rápida via REST Client
 
-<p align="center">
-  <img src="doc/roadmap.png" alt="Roadmap de Evolução" width="850"/>
-</p>
-
-- [x] Estruturação com Clean Architecture modular por domínios
-- [x] Transcrição com Whisper e Tool Calling com Spring AI
-- [x] Persistência em banco relacional (MySQL)
-- [x] Resposta com síntese de voz (TTS)
-- [x] Suíte de testes unitários isolados com Mockito
-- [x] Suporte a LLM local gratuito com Ollama (Llama 3)
-- [ ] Suporte a múltiplos provedores em nuvem (Claude / Gemini)
-- [ ] Processamento assíncrono de áudio com mensageria (Kafka / RabbitMQ)
-- [ ] Relatórios e dashboards de gastos por período e categoria
+O projeto conta com o arquivo **[`restfiles/AUTH.http`](file:///home/rogerio/Development/Bootcamps/DioJavaIA/budgetinAI/restfiles/AUTH.http)** pronto para execução:
+1. **Passo 1:** Testa a proteção da API sem token (`403 Forbidden`).
+2. **Passo 2:** Autentica com o usuário padrão (`rogerio` / `password`) e captura o JWT.
+3. **Passo 3 & 4:** Consulta e cria transações vinculadas ao UUID do usuário autenticado.
+4. **Passo 6:** Envia áudio de voz para a IA transcrever, classificar, persistir no MySQL e responder em MP3.
+5. **Passo 7:** Consulta o MongoDB (`GET /transactions/ai/files`) comprovando a auditoria e metadados persistidos.
 
 ---
 
-## 📚 Referência & Agradecimentos
+## 🗺️ Roadmap de Evolução
 
-Este projeto foi desenvolvido com base no bootcamp da **Digital Innovation One (DIO)**:
-* **Repositório de Referência:** [DIO Spring Boot Learning Track - Módulo 05: Spring AI](https://github.com/digitalinnovationone/dio-spring-boot-learning-track/blob/main/05-spring-ai/README.md)
-* **Instrutor/Trilha:** Desenvolvimento de assistentes inteligentes utilizando o ecossistema Spring Boot e modelos generativos da OpenAI.
+- [x] Estruturação com Clean Architecture modular por domínios
+- [x] Transcrição com Whisper e Tool Calling com Spring AI
+- [x] Suporte a LLM local gratuito com Ollama (Llama 3.2)
+- [x] Autenticação Stateless com Spring Security e JWT
+- [x] Mapeamento legível de UUIDs como `VARCHAR(36)` no MySQL
+- [x] Desacoplamento entre Bounded Contexts com `Owner(UUID, String)`
+- [x] Persistência Poliglota: MongoDB para metadados de arquivos e auditoria de IA
+- [x] Armazenamento físico de áudios particionado por data
+- [ ] Suporte a múltiplos provedores em nuvem (Claude / Gemini)
+- [ ] Processamento assíncrono de áudio com mensageria (Kafka / RabbitMQ)
+- [ ] Relatórios e dashboards de gastos por período e categoria
 
 ---
 

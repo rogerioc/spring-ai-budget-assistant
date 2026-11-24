@@ -1,9 +1,16 @@
+### Envio de áudio para transcrição, persistência de transação e resposta sintetizada (TTS)
+### Dica no VS Code / Antigravity:
+### Para salvar o áudio gerado (.mp3), clique no ícone "Save Response Body" no canto superior direito
+### da aba de resposta, ou use o Command Palette (Ctrl+Shift+P -> Rest Client: Save Response Body).
+### Ou execute via curl:
+### curl -X POST http://localhost:8080/transactions/ai/audio -F "file=@src/test/resources/audio/recording-1.m4a" -o output.mp3
+
 POST http://localhost:8080/transactions/ai/audio
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary
-Content-Disposition: form-data; name="file"; filename="recording-6.m4a"
+Content-Disposition: form-data; name="file"; filename="recording-1.m4a"
 Content-Type: audio/m4a
 
-< ../src/test/resources/audio/recording-6.m4a
+< ../src/test/resources/audio/recording-1.m4a
 --boundary--

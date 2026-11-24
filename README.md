@@ -151,28 +151,30 @@ src/main/java/org/rogeriocs/budgetinai/
 
 ## 📡 Endpoints da API
 
+Todos os endpoints da API (com exceção de `/api/auth/**`) são protegidos pelo Spring Security e exigem o envio do cabeçalho `Authorization: Bearer <token_jwt>`.
+
 ### 1. Autenticação (Público)
 | Método | Endpoint | Descrição | Consome | Retorna |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/register` | Cadastro de novo usuário | `application/json` | `AuthResponse` (Token JWT) |
-| `POST` | `/api/auth/login` | Login com usuário e senha | `application/json` | `AuthResponse` (Token JWT) |
+| `POST` | `/api/auth/register` | Cadastro de novo usuário | `application/json` (`AuthRequest`) | `AuthResponse` (Token JWT) |
+| `POST` | `/api/auth/login` | Login com usuário e senha | `application/json` (`AuthRequest`) | `AuthResponse` (Token JWT) |
 
-### 2. Assistente de Voz & Transações (Requer Bearer Token)
+### 2. Assistente de Voz & Gestão de Transações (Requer Bearer Token)
 | Método | Endpoint | Descrição | Consome | Retorna |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/transactions/ai/audio` | Processa áudio, grava no MySQL/Mongo e devolve áudio MP3 | `multipart/form-data` | `audio/mp3` |
-| `POST` | `/transactions/ai/text` | Processa áudio, grava no MySQL/Mongo e devolve texto | `multipart/form-data` | `text/plain` |
+| `POST` | `/transactions/ai/audio` | Processa áudio, persiste no MySQL/Mongo e sintetiza áudio MP3 | `multipart/form-data` (`file`) | `audio/mp3` (Resource) |
+| `POST` | `/transactions/ai/text` | Processa áudio, persiste no MySQL/Mongo e responde em texto | `multipart/form-data` (`file`) | `text/plain` |
 | `GET` | `/transactions/ai/files` | Histórico e auditoria de arquivos/IA gravados no MongoDB | - | `List<FileMetadata>` |
-| `POST` | `/transactions` | Criação manual de transação financeira | `application/json` | `TransactionResponse` |
+| `POST` | `/transactions` | Criação manual de transação financeira | `application/json` (`TransactionRequest`) | `TransactionResponse` |
 | `GET` | `/transactions/{category}` | Lista transações por categoria (`GROCERIES`, `PHARMA`, `AUTO`) | - | `List<TransactionResponse>` |
 
-### 3. Serviços Básicos de IA
-| Método | Endpoint | Descrição |
-| :--- | :--- | :--- |
-| `POST` | `/api/transcribe` | Transcreve arquivo de áudio para texto |
-| `POST` | `/api/synthesize` | Sintetiza texto enviado em arquivo de áudio MP3 |
-| `GET` | `/api/chat` | Chat interativo simples com o assistente via query param `?prompts=` |
-| `GET` | `/api/chat-model` | Chamada direta ao modelo de chat |
+### 3. Serviços Individuais de IA (Requer Bearer Token)
+| Método | Endpoint | Descrição | Consome | Retorna |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/api/transcribe` | Transcreve arquivo de áudio isoladamente via Whisper | `multipart/form-data` (`file`) | `text/plain` |
+| `POST` | `/api/synthesize` | Sintetiza texto enviado em áudio MP3 (alias: `/api/sinthesize`) | `application/json` (`SynthesizeRequest`) | `audio/mp3` (Resource) |
+| `GET` | `/api/chat` | Chat simples com IA via query param `?prompt=Ola` | - | `text/plain` |
+| `GET` | `/api/chat-model` | Chat direto com o ChatModel via query param `?prompt=Ola` | - | `text/plain` |
 
 ---
 

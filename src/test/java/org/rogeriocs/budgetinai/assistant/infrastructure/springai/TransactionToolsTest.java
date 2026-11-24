@@ -33,12 +33,12 @@ class TransactionToolsTest {
     void shouldDelegatePersistTransactionTool() {
         var expectedInput = new PersistTransactionInput("Padaria", 2500L, Category.GROCERIES);
         var expectedOutput = new TransactionOutput("id-1", "Padaria", "GROCERIES", 2500.0);
-        when(persistTransactionUseCase.execute(expectedInput)).thenReturn(expectedOutput);
+        when(persistTransactionUseCase.execute(expectedInput, null)).thenReturn(expectedOutput);
 
         var result = transactionTools.persistTransaction("Padaria", 2500L, Category.GROCERIES);
 
         assertThat(result).isEqualTo(expectedOutput);
-        verify(persistTransactionUseCase).execute(expectedInput);
+        verify(persistTransactionUseCase).execute(expectedInput, null);
     }
 
     @Test

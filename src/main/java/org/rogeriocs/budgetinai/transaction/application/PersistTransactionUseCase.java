@@ -2,7 +2,7 @@ package org.rogeriocs.budgetinai.transaction.application;
 
 import org.rogeriocs.budgetinai.transaction.application.input.PersistTransactionInput;
 import org.rogeriocs.budgetinai.transaction.application.output.TransactionOutput;
-import org.rogeriocs.budgetinai.transaction.domain.Transaction;
+import org.rogeriocs.budgetinai.transaction.domain.Owner;
 import org.rogeriocs.budgetinai.transaction.domain.TransactionRepository;
 import org.springframework.stereotype.Service;
 
@@ -15,10 +15,12 @@ public class PersistTransactionUseCase {
         this.transactionRepository = transactionRepository;
     }
 
-    public TransactionOutput execute(PersistTransactionInput input) {
-        var transaction = transactionRepository.save(
-                new Transaction(input.description(), input.amount(), input.category())
-        );
+    public TransactionOutput execute(PersistTransactionInput input, Owner owner) {
+        var transaction = transactionRepository.save(input.toDomain(owner));
         return TransactionOutput.from(transaction);
+    }
+
+    public TransactionOutput execute(PersistTransactionInput input) {
+        return execute(input, null);
     }
 }

@@ -1,0 +1,86 @@
+### ==============================================================================
+### GUIA DE VALIDAÇÃO DO FLUXO: SPRING SECURITY + JWT + CLEAN ARCHITECTURE
+### ==============================================================================
+### Dica: O REST Client do VS Code / Antigravity captura variáveis automaticamente.
+### Basta clicar em "Send Request" passo a passo, de cima para baixo.
+### ==============================================================================
+
+### ------------------------------------------------------------------------------
+### PASSO 1: Provar a Segurança (Tentar acessar rota protegida SEM Token)
+### Resultado Esperado: HTTP 403 Forbidden (Acesso Negado)
+### ------------------------------------------------------------------------------
+GET http://localhost:8080/transactions/GROCERIES
+
+### ------------------------------------------------------------------------------
+### PASSO 2: Autenticar (Login com usuário padrão do Seed: rogerio / password)
+### Resultado Esperado: HTTP 200 OK com o Token JWT gerado
+### ------------------------------------------------------------------------------
+# @name login
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "rogerio",
+  "password": "password"
+}
+
+### Armazena o Token retornado na variável para uso automático nos próximos passos:
+@authToken = {{login.response.body.token}}
+
+### ------------------------------------------------------------------------------
+### PASSO 3: Acessar Rota Protegida COM o Token JWT
+### Resultado Esperado: HTTP 200 OK (Acesso Autorizado via Bearer Token)
+### ------------------------------------------------------------------------------
+GET http://localhost:8080/transactions/GROCERIES
+Authorization: Bearer {{authToken}}
+
+### ------------------------------------------------------------------------------
+### PASSO 4: Criar Transação Manual vinculada ao Usuário Autenticado
+### Resultado Esperado: HTTP 201 Created retornando "owner": { "id": "<UUID-DO-USUARIO>", "name": "rogerio" }
+### ------------------------------------------------------------------------------
+POST http://localhost:8080/transactions
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "description": "Supermercado Central",
+  "category": "GROCERIES",
+  "amount": 18550
+}
+
+### ------------------------------------------------------------------------------
+### PASSO 5: Chamar o Chat da IA Protegido com Token
+### Resultado Esperado: HTTP 200 OK com resposta do Llama 3.2
+### ------------------------------------------------------------------------------
+GET http://localhost:8080/api/chat?prompt=Ola
+Authorization: Bearer {{authToken}}
+
+### ------------------------------------------------------------------------------
+### PASSO 6: Assistente de Voz (Áudio -> Transcrição -> Llama 3.2 Tool Calling -> TTS)
+### A IA identifica o usuário autenticado e grava o gasto associado ao "rogerio"!
+### Resultado Esperado: HTTP 200 OK com bytes do áudio sintetizado em MP3
+### (Para salvar o .mp3, use o botão "Save Response Body" no canto superior direito)
+### ------------------------------------------------------------------------------
+POST http://localhost:8080/transactions/ai/audio
+Authorization: Bearer {{authToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="recording-1.m4a"
+Content-Type: audio/m4a
+
+< ../src/test/resources/audio/recording-1.m4a
+--boundary--
+
+### ------------------------------------------------------------------------------
+### PASSO 7 (Opcional): Cadastrar um Segundo Usuário
+### Resultado Esperado: HTTP 201 Created com Token próprio
+### ------------------------------------------------------------------------------
+# @name register
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "maria",
+  "password": "senha_segura_123"
+}

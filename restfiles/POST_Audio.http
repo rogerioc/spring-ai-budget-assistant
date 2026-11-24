@@ -3,9 +3,10 @@
 ### Para salvar o áudio gerado (.mp3), clique no ícone "Save Response Body" no canto superior direito
 ### da aba de resposta, ou use o Command Palette (Ctrl+Shift+P -> Rest Client: Save Response Body).
 ### Ou execute via curl:
-### curl -X POST http://localhost:8080/transactions/ai/audio -F "file=@src/test/resources/audio/recording-1.m4a" -o output.mp3
+### curl -X POST http://localhost:8080/transactions/ai/audio -H "Authorization: Bearer <TOKEN>" -F "file=@src/test/resources/audio/recording-1.m4a" -o output.mp3
 
 POST http://localhost:8080/transactions/ai/audio
+Authorization: Bearer {{authToken}}
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary

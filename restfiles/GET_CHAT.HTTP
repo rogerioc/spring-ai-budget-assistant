@@ -1,2 +1,3 @@
-###
-GET http://localhost:8080/api/chat?prompt=Olá
+### Chat com IA (Requer Token JWT se autenticação estiver ativa)
+GET http://localhost:8080/api/chat?prompt=Ola
+Authorization: Bearer {{authToken}}

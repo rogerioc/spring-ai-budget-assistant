@@ -68,6 +68,15 @@ O projeto é organizado por **Domínios/Contextos Delimitados (Package by Featur
 src/main/java/org/rogeriocs/budgetinai/
 ├── BudgetinAiApplication.java
 │
+├── auth/                                     # Domínio: Identidade & Segurança (JWT)
+│   ├── domain/                               # Entidades e Value Objects
+│   │   ├── UserRole.java                     (ROLE_USER, ROLE_ADMIN)
+│   │   └── UserId.java
+│   └── infrastructure/                       # Adaptadores Spring Security & JPA
+│       ├── http/ (AuthController - Login e Registro)
+│       ├── persistence/ (User, UserRepository)
+│       └── security/ (SecurityConfig, JwtService, JwtAuthenticationFilter, JpaUserDetailsService)
+│
 ├── transaction/                              # Domínio: Gestão Financeira
 │   ├── domain/                               # Entidades e regras puras
 │   │   ├── Transaction.java
@@ -116,7 +125,13 @@ src/main/java/org/rogeriocs/budgetinai/
 
 ## 📡 Endpoints da API
 
-### Assistente de Voz & Transações
+### Autenticação (Público)
+| Método | Endpoint | Descrição | Consome | Retorna |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/register` | Cadastro de novo usuário | `application/json` | `AuthResponse` (Token JWT) |
+| `POST` | `/api/auth/login` | Login com usuário e senha | `application/json` | `AuthResponse` (Token JWT) |
+
+### Assistente de Voz & Transações (Requer Bearer Token)
 | Método | Endpoint | Descrição | Consome | Retorna |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/transactions/ai/text` | Processa áudio, grava a transação e responde em texto | `multipart/form-data` | `text/plain` |
